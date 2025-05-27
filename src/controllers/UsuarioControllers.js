@@ -24,6 +24,22 @@ export default class UsuarioControllers {
     async postUsers(req, res) {
         try {
             const { nome, email, telefone, dataNascimento, cpf, cep, cidade, bairro, rua, numeroCasa, senha } = req.body;
+            const [verificacaoUserExistente] = await ConexaoMySql.query(
+                'SELECT email, cpf FROM usuarios WHERE email = ? OR cpf = ?', 
+                [email, cpf]
+            );
+    
+            if (verificacaoUserExistente.length > 0) {
+                const user = verificacaoUserExistente[0];
+                
+                // Mensagem mais específica
+                if (user.email === email) {
+                    return res.status(409).json({ erro: 'Email já cadastrado' });
+                }
+                if (user.cpf === cpf) {
+                    return res.status(409).json({ erro: 'CPF já cadastrado' });
+                }
+            }
             const [resultado] = await ConexaoMySql.query(
                 `INSERT INTO usuarios (nome, email, telefone, dataNascimento, cpf, cep, cidade, bairro, rua, numeroCasa, senha)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,

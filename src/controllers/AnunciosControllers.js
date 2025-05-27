@@ -4,7 +4,7 @@ export default class AnunciosController {
     async getAnuncios(req, res) {
         try {
             const [anuncios] = await ConexaoMySql.execute('SELECT * FROM anuncios');
-            res.json(anuncios); // Sempre retorna o array, mesmo vazio
+            res.json(anuncios);
         } catch (error) {
             console.error('Erro ao listar anúncios:', error);
             res.status(500).json({ 
@@ -38,8 +38,6 @@ export default class AnunciosController {
     async postAnuncios(req, res) {
         try {
             const { titulo, descricao, preco, usuarioId, foto } = req.body;
-
-            // Validação mais robusta
             const camposObrigatorios = { titulo, descricao, preco, usuarioId, foto };
             const camposFaltantes = Object.entries(camposObrigatorios)
                 .filter(([_, value]) => !value)
@@ -70,6 +68,16 @@ export default class AnunciosController {
                 error: 'Erro ao criar anúncio',
                 detalhes: process.env.NODE_ENV === 'development' ? err.message : undefined
             });
+        }
+    }
+
+    async putAnuciosById(req, res){
+        try {
+            const{ titulo, descricao, preco, usuarioId, foto } = req.body;
+            const camposObrigatorios = { titulo, descricao, preco, usuarioId, foto };
+
+        } catch (error) {
+            
         }
     }
 }
