@@ -7,7 +7,7 @@ export default class AnunciosController {
             res.json(anuncios);
         } catch (error) {
             console.error('Erro ao listar anúncios:', error);
-            res.status(500).json({ 
+            res.status(500).json({
                 error: 'Erro ao listar anúncios',
                 detalhes: process.env.NODE_ENV === 'development' ? error.message : undefined
             });
@@ -18,13 +18,13 @@ export default class AnunciosController {
         try {
             const { id } = req.params;
             const [anuncios] = await ConexaoMySql.execute('SELECT * FROM anuncios WHERE id = ?', [id]);
-            
+
             if (anuncios.length === 0) {
-                return res.status(404).json({ 
-                    error: 'Anúncio não encontrado' 
+                return res.status(404).json({
+                    error: 'Anúncio não encontrado'
                 });
             }
-            
+
             res.json(anuncios[0]);
         } catch (error) {
             console.error('Erro ao buscar anúncio:', error);
@@ -44,9 +44,9 @@ export default class AnunciosController {
                 .map(([key]) => key);
 
             if (camposFaltantes.length > 0) {
-                return res.status(400).json({ 
+                return res.status(400).json({
                     error: 'Campos obrigatórios faltando',
-                    camposFaltantes 
+                    camposFaltantes
                 });
             }
 
@@ -71,13 +71,44 @@ export default class AnunciosController {
         }
     }
 
-    async putAnuciosById(req, res){
+    async putAnuciosById(req, res) {
         try {
-            const{ titulo, descricao, preco, usuarioId, foto } = req.body;
-            const camposObrigatorios = { titulo, descricao, preco, usuarioId, foto };
+            const { id } = req.params;
+            const { titulo, descricao, preco, usuarioId, foto } = req.body;
+
+
+            const [anuncios] = await ConexaoMySql.query(
+                'SELECT * FROM anuncios WHERE id = ? AND usuario_id = ?',
+                [id, usuarioId]
+            );
+
+            if (anuncios.length === 0) {
+                return res.status(404).json({ mensagem: 'Anúncio não encontrado' });
+            }
+
+            await ConexaoMySql.query(
+                `UPDATE anuncios SET titulo = ?, descricao = ?, preco = ?, foto = ? WHERE id = ? AND usuario_id = ?`,
+                [titulo, descricao, preco, foto, id, usuarioId]
+            );
+
+            res.status(200).json({ mensagem: 'Anúncio atualizado com sucesso' });
 
         } catch (error) {
+            res.status(500).json({ erro: 'Erro ao atualizar anúncio', detalhes: error.message });
+        }
+    }
+
+    async deleteAnunciosById(req, res) {
+        try {
+            const { id } = req.params;
+            const [anuncios] = await ConexaoMySql.query('SELECT * FROM anuncios WHERE id=?', [id]);
             
+            await ConexaoMySql.query('DELETE FROM anuncios WHERE id = ?', [id]);
+            res.status(200).json({ mensagem: 'Anúncio exclúido com sucesso' })
+        } catch (error) {
+            res.status(500).json({
+                erro: 'Erro ao excluir  anúncio', detalhes, error
+            })
         }
     }
 }

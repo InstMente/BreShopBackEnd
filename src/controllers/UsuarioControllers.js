@@ -25,14 +25,14 @@ export default class UsuarioControllers {
         try {
             const { nome, email, telefone, dataNascimento, cpf, cep, cidade, bairro, rua, numeroCasa, senha } = req.body;
             const [verificacaoUserExistente] = await ConexaoMySql.query(
-                'SELECT email, cpf FROM usuarios WHERE email = ? OR cpf = ?', 
+                'SELECT email, cpf FROM usuarios WHERE email = ? OR cpf = ?',
                 [email, cpf]
             );
-    
+
             if (verificacaoUserExistente.length > 0) {
                 const user = verificacaoUserExistente[0];
-                
-                
+
+
                 if (user.email === email) {
                     return res.status(409).json({ erro: 'Email já cadastrado' });
                 }
@@ -56,19 +56,19 @@ export default class UsuarioControllers {
             const { id } = req.params;
             const { nome, email, telefone, dataNascimento, cpf, cep, cidade, bairro, rua, numeroCasa, senha } = req.body;
             const [verificacaoUserExistente] = await ConexaoMySql.query(
-                'SELECT email, cpf FROM usuarios WHERE email = ? OR cpf = ?', 
+                'SELECT email, cpf FROM usuarios WHERE email = ? OR cpf = ?',
                 [email, cpf]
             );
-    
+
             if (verificacaoUserExistente.length > 0) {
                 const user = verificacaoUserExistente[0];
-                
+
                 if (user.email === email) {
                     return res.status(409).json({ erro: 'Email já cadastrado' });
                 }
-                if (user.cpf === cpf) {
-                    return res.status(409).json({ erro: 'CPF já cadastrado' });
-                }
+                // if (user.cpf === cpf) {
+                //     return res.status(409).json({ erro: 'CPF já cadastrado' });
+                // }
             }
 
             const [usuario] = await ConexaoMySql.query('SELECT * FROM usuarios WHERE id = ?', [id]);

@@ -23,6 +23,10 @@ app.delete('/usuarios/:id', usuariosController.deleteUsers.bind(usuariosControll
 app.get('/anuncios', anunciosController.getAnuncios.bind(anunciosController));
 app.get('/anuncios/:id', anunciosController.getAnunciosById.bind(anunciosController));
 app.post('/anuncios', anunciosController.postAnuncios.bind(anunciosController));
+app.put('/anuncios/:id', anunciosController.putAnuciosById.bind(anunciosController));
+app.delete('/anuncios/:id', anunciosController.deleteAnunciosById.bind(anunciosController));
+
+
 
 
 
