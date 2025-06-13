@@ -1,120 +1,90 @@
-import ConexaoMySql from '../config/ConexaoMySql.js';
+import supabase from '../config/supabaseClient.js';
 
 export default class UsuarioControllers {
     async getUsers(req, res) {
-        try {
-            const [usuarios] = await ConexaoMySql.query('SELECT * FROM usuarios');
-            if (usuarios.length === 0) {
-
-                res.status(404).json({ mensagem: 'Usuário não encontrado no banco de dados!' })
-
-            }
-            res.json(usuarios);
-        } catch (err) {
-            res.status(500).json({ mensagem: 'Erro ao listar usuários', detalhes: err });
-        }
+        const { data, error } = await supabase.from('usuarios').select('*');
+        if (error || data.length === 0) return res.status(404).json({ mensagem: 'Usuário não encontrado no banco de dados!' });
+        res.json(data);
     }
 
     async getUsersById(req, res) {
-        try {
-            const { id } = req.params;
-            const [usuario] = await ConexaoMySql.query('SELECT * FROM usuarios WHERE id = ?', [id]);
-            if (usuario.length === 0) return res.status(404).json({ erro: 'Usuário não encontrado' });
-            res.json(usuario[0]);
-        } catch (err) {
-            res.status(500).json({ mensagem: 'Erro ao buscar usuário', detalhes: err });
-        }
+        const { id } = req.params;
+        const { data, error } = await supabase.from('usuarios').select('*').eq('id', id).single();
+        if (error) return res.status(404).json({ erro: 'Usuário não encontrado' });
+        res.json(data);
+    }
+
+    async getUserByEmail(req, res) {
+        const { email } = req.params;
+
+        const { data, error } = await supabase
+            .from('usuarios')
+            .select('*')
+            .eq('email', email)
+            .single();
+
+        if (error || !data) return res.status(404).json({ mensagem: 'Usuário não encontrado' });
+
+        res.json(data);
     }
 
     async postUsers(req, res) {
-        try {
-            const { nome, email, telefone, dataNascimento, cpf, cep, cidade, bairro, rua, numeroCasa, senha } = req.body;
-            if (!nome || !email || !telefone || !dataNascimento || !cpf || !cep || !cidade || !bairro || !rua || !numeroCasa || !senha) {
-                return res.status(400).json({ mensagem: 'Campos Obrigatórios ausentes' })
-            }
-            const [verificacaoUserExistente] = await ConexaoMySql.query(
-                'SELECT email, cpf FROM usuarios WHERE email = ? OR cpf = ?',
-                [email, cpf]
-            );
+        const { nome, email, telefone, datanascimento, cpf, cep, cidade, bairro, rua, numerocasa, senha } = req.body;
 
-            if (verificacaoUserExistente.length > 0) {
-                const user = verificacaoUserExistente[0];
-
-                if (user.email === email) {
-                    return res.status(409).json({ erro: 'Email já cadastrado' });
-                }
-                if (user.cpf === cpf) {
-                    return res.status(409).json({ mensagem: 'CPF já cadastrado' });
-                }
-                if (user.nome === nome) {
-                    return res.status(409).json({ mensagem: 'Nome já utilizado' })
-                }
-            }
-            const [resultado] = await ConexaoMySql.query(
-                `INSERT INTO usuarios (nome, email, telefone, dataNascimento, cpf, cep, cidade, bairro, rua, numeroCasa, senha)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, MD5(?))`,
-                [nome, email, telefone, dataNascimento, cpf, cep, cidade, bairro, rua, numeroCasa, senha]
-            );
-            res.status(201).json({ id: resultado.insertId });
-        } catch (err) {
-            res.status(500).json({ mensagem: 'Erro ao adicionar usuário', detalhes: err });
+        if (!nome || !email || !telefone || !datanascimento || !cpf || !cep || !cidade || !bairro || !rua || !numerocasa || !senha) {
+            return res.status(400).json({ mensagem: 'Campos Obrigatórios ausentes' });
         }
+
+        const { data: existing } = await supabase
+            .from('usuarios')
+            .select('email, cpf')
+            .or(`email.eq.${email},cpf.eq.${cpf}`);
+
+        if (existing && existing.length > 0) {
+            const user = existing[0];
+            if (user.email === email) return res.status(409).json({ erro: 'Email já cadastrado' });
+            if (user.cpf === cpf) return res.status(409).json({ mensagem: 'CPF já cadastrado' });
+        }
+
+        const { data, error } = await supabase
+            .from('usuarios')
+            .insert([{ nome, email, telefone, datanascimento, cpf, cep, cidade, bairro, rua, numerocasa, senha }])
+            .select('id')
+            .single();
+
+        if (error) return res.status(500).json({ mensagem: 'Erro ao adicionar usuário', detalhes: error.message });
+        res.status(201).json({ id: data.id });
     }
 
     async putUsers(req, res) {
-        try {
-            const validarEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            const { id } = req.params;
-            const { nome, email, telefone, dataNascimento, cpf, cep, cidade, bairro, rua, numeroCasa, senha } = req.body;
-            if (!nome || !email || !telefone || !dataNascimento || !cpf || !cep || !cidade || !bairro || !rua || !numeroCasa || !senha) {
-                return res.status(400).json({ mensagem: 'Campos Obrigatórios ausentes' })
-            }
-            const [verificacaoUserExistente] = await ConexaoMySql.query(
-                'SELECT id FROM usuarios WHERE (email = ? OR cpf = ?) AND id != ?',
-                [email, cpf, id]
-            );
+        const { id } = req.params;
+        const { nome, email, telefone, datanascimento, cpf, cep, cidade, bairro, rua, numerocasa, senha } = req.body;
 
-            if (verificacaoUserExistente.length > 0) {
-                const user = verificacaoUserExistente[0];
-                if (!user.email) {
-                    return res.status(400).json({ mensagem: "Campo email é obrigatório" })
-                }
-                if (user.email == email) {
-                    return res.status(409).json({ mensagem: 'Email já utilizado' })
-                }
-                if (validarEmail.test(user.email)) {
-                    return res.status(200).json({ mensagem: "Email válido" })
-                } else {
-                    return res.status(422).json({ mensagem: 'Email inválido' })
-                }
-            }
-
-            const [usuario] = await ConexaoMySql.query('SELECT * FROM usuarios WHERE id = ?', [id]);
-            if (usuario.length === 0) {
-                return res.status(404).json({ mensagem: 'Usuário não encontrado' });
-            }
-
-            await ConexaoMySql.query(
-                `UPDATE usuarios 
-       SET nome = ?, email = ?, telefone = ?, dataNascimento = ?, cpf = ?, cep = ?, 
-           cidade = ?, bairro = ?, rua = ?, numeroCasa = ?, senha = MD5(?)
-       WHERE id = ?`,
-                [nome, email, telefone, dataNascimento, cpf, cep, cidade, bairro, rua, numeroCasa, senha, id]
-            );
-
-            res.status(200).json({ mensagem: 'Usuário atualizado com sucesso' });
-        } catch (err) {
-            res.status(500).json({ mensagem: 'Erro ao atualizar usuário'});
+        if (!nome || !email || !telefone || !datanascimento || !cpf || !cep || !cidade || !bairro || !rua || !numerocasa || !senha) {
+            return res.status(400).json({ mensagem: 'Campos Obrigatórios ausentes' });
         }
+
+        const { data: existing } = await supabase
+            .from('usuarios')
+            .select('id')
+            .or(`email.eq.${email},cpf.eq.${cpf}`)
+            .neq('id', id);
+
+        if (existing.length > 0) return res.status(409).json({ mensagem: 'Email ou CPF já utilizado' });
+
+        const { error } = await supabase
+            .from('usuarios')
+            .update({ nome, email, telefone, datanascimento, cpf, cep, cidade, bairro, rua, numerocasa, senha })
+            .eq('id', id);
+
+        if (error) return res.status(500).json({ mensagem: 'Erro ao atualizar usuário', detalhes: error.message });
+        res.status(200).json({ mensagem: 'Usuário atualizado com sucesso' });
     }
 
     async deleteUsers(req, res) {
-        try {
-            const { id } = req.params;
-            await ConexaoMySql.query('DELETE FROM usuarios WHERE id = ?', [id]);
-            res.status(200).json({ mensagem: 'Usuário excluído com sucesso' });
-        } catch (err) {
-            res.status(500).json({ mensagem: 'Erro ao excluir usuário' });
-        }
+        const { id } = req.params;
+        const { error } = await supabase.from('usuarios').delete().eq('id', id);
+        if (error) return res.status(500).json({ mensagem: 'Erro ao excluir usuário', detalhes: error.message });
+        res.status(200).json({ mensagem: 'Usuário excluído com sucesso' });
     }
 }

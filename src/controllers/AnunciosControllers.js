@@ -1,114 +1,111 @@
-import ConexaoMySql from "../config/ConexaoMySql.js";
+import supabase from '../config/supabaseClient.js';
 
 export default class AnunciosController {
-    async getAnuncios(req, res) {
-        try {
-            const [anuncios] = await ConexaoMySql.execute('SELECT * FROM anuncios');
-            res.json(anuncios);
-        } catch (error) {
-            console.error('Erro ao listar anúncios:', error);
-            res.status(500).json({
-                error: 'Erro ao listar anúncios',
-                detalhes: process.env.NODE_ENV === 'development' ? error.message : undefined
-            });
-        }
+  async getAnuncios(req, res) {
+    const { data, error } = await supabase.from('anuncios').select('*');
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
+  }
+
+  async getAnunciosById(req, res) {
+    const { id } = req.params;
+    const { data, error } = await supabase
+      .from('anuncios')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) return res.status(404).json({ error: 'Anúncio não encontrado' });
+    res.json(data);
+  }
+
+  async postAnuncios(req, res) {
+    const { titulo, descricao, preco, usuarioId, foto } = req.body;
+
+    const campos = {
+      titulo,
+      descricao,
+      preco,
+      usuario_id: usuarioId,
+      foto
+    };
+
+    const faltando = Object.entries(campos)
+      .filter(([_, v]) => v === undefined || v === null || v === '')
+      .map(([k]) => k);
+
+    if (faltando.length > 0) {
+      return res.status(400).json({
+        error: 'Campos obrigatórios faltando',
+        camposFaltantes: faltando
+      });
     }
 
-    async getAnunciosById(req, res) {
-        try {
-            const { id } = req.params;
-            const [anuncios] = await ConexaoMySql.execute('SELECT * FROM anuncios WHERE id = ?', [id]);
+    const { data, error } = await supabase
+      .from('anuncios')
+      .insert([campos])
+      .select('id')
+      .single();
 
-            if (anuncios.length === 0) {
-                return res.status(404).json({
-                    error: 'Anúncio não encontrado'
-                });
-            }
-
-            res.json(anuncios[0]);
-        } catch (error) {
-            console.error('Erro ao buscar anúncio:', error);
-            res.status(500).json({
-                error: 'Erro ao buscar anúncio',
-                detalhes: process.env.NODE_ENV === 'development' ? error.message : undefined
-            });
-        }
+    if (error) {
+      return res.status(500).json({ error: error.message });
     }
 
-    async postAnuncios(req, res) {
-        try {
-            const { titulo, descricao, preco, usuarioId, foto } = req.body;
-            const camposObrigatorios = { titulo, descricao, preco, usuarioId, foto };
-            const camposFaltantes = Object.entries(camposObrigatorios)
-                .filter(([_, value]) => !value)
-                .map(([key]) => key);
+    res.status(201).json({
+      id: data.id,
+      message: 'Anúncio criado com sucesso',
+      links: {
+        consulta: `/anuncios/${data.id}`
+      }
+    });
+  }
 
-            if (camposFaltantes.length > 0) {
-                return res.status(400).json({
-                    error: 'Campos obrigatórios faltando',
-                    camposFaltantes
-                });
-            }
+  async putAnuciosById(req, res) {
+    const { id } = req.params;
+    const { titulo, descricao, preco, usuarioId, foto } = req.body;
 
-            const [result] = await ConexaoMySql.execute(
-                'INSERT INTO anuncios (titulo, descricao, preco, foto, usuario_id) VALUES (?, ?, ?, ?, ?)',
-                [titulo, descricao, preco, foto, usuarioId]
-            );
+    const { data, error: findError } = await supabase
+      .from('anuncios')
+      .select('*')
+      .eq('id', id)
+      .eq('usuario_id', usuarioId)
+      .single();
 
-            res.status(201).json({
-                id: result.insertId,
-                message: 'Anúncio criado com sucesso',
-                links: {
-                    consulta: `/anuncios/${result.insertId}`
-                }
-            });
-        } catch (err) {
-            console.error('Erro ao criar anúncio:', err);
-            res.status(500).json({
-                error: 'Erro ao criar anúncio',
-                detalhes: process.env.NODE_ENV === 'development' ? err.message : undefined
-            });
-        }
+    if (findError) {
+      return res.status(404).json({ mensagem: 'Anúncio não encontrado ou não pertence ao usuário' });
     }
 
-    async putAnuciosById(req, res) {
-        try {
-            const { id } = req.params;
-            const { titulo, descricao, preco, usuarioId, foto } = req.body;
+    const { error } = await supabase
+      .from('anuncios')
+      .update({ titulo, descricao, preco, foto })
+      .eq('id', id)
+      .eq('usuario_id', usuarioId);
 
-
-            const [anuncios] = await ConexaoMySql.query(
-                'SELECT * FROM anuncios WHERE id = ? AND usuario_id = ?',
-                [id, usuarioId]
-            );
-
-            if (anuncios.length === 0) {
-                return res.status(404).json({ mensagem: 'Anúncio não encontrado' });
-            }
-
-            await ConexaoMySql.query(
-                `UPDATE anuncios SET titulo = ?, descricao = ?, preco = ?, foto = ? WHERE id = ? AND usuario_id = ?`,
-                [titulo, descricao, preco, foto, id, usuarioId]
-            );
-
-            res.status(200).json({ mensagem: 'Anúncio atualizado com sucesso' });
-
-        } catch (error) {
-            res.status(500).json({ erro: 'Erro ao atualizar anúncio', detalhes: error.message });
-        }
+    if (error) {
+      return res.status(500).json({
+        erro: 'Erro ao atualizar anúncio',
+        detalhes: error.message
+      });
     }
 
-    async deleteAnunciosById(req, res) {
-        try {
-            const { id } = req.params;
-            const [anuncios] = await ConexaoMySql.query('SELECT * FROM anuncios WHERE id=?', [id]);
-            
-            await ConexaoMySql.query('DELETE FROM anuncios WHERE id = ?', [id]);
-            res.status(200).json({ mensagem: 'Anúncio exclúido com sucesso' })
-        } catch (error) {
-            res.status(500).json({
-                erro: 'Erro ao excluir  anúncio', detalhes, error
-            })
-        }
+    res.status(200).json({ mensagem: 'Anúncio atualizado com sucesso' });
+  }
+
+  async deleteAnunciosById(req, res) {
+    const { id } = req.params;
+
+    const { error } = await supabase
+      .from('anuncios')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      return res.status(500).json({
+        erro: 'Erro ao excluir anúncio',
+        detalhes: error.message
+      });
     }
+
+    res.status(200).json({ mensagem: 'Anúncio excluído com sucesso' });
+  }
 }
