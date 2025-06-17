@@ -20,7 +20,7 @@ export default class AnunciosController {
   }
 
   async postAnuncios(req, res) {
-    const { titulo, descricao, preco, usuarioId, foto } = req.body;
+    const { titulo, descricao, preco, foto, usuarioId  } = req.body;
 
     const campos = {
       titulo,
