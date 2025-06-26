@@ -2,7 +2,7 @@ import supabase from '../config/supabaseClient.js';
 
 export default class AnunciosController {
   async getAnuncios(req, res) {
-    const { data, error } = await supabase.from('anuncios').select('*');
+    const { data, error } = await supabase.from('anuncios').select('*').eq('ativo', true);
     if (error) return res.status(500).json({ error: error.message });
     res.json(data);
   }
@@ -20,14 +20,15 @@ export default class AnunciosController {
   }
 
   async postAnuncios(req, res) {
-    const { titulo, descricao, preco, foto, usuarioId  } = req.body;
+    const { titulo, descricao, preco, foto, usuarioId } = req.body;
 
     const campos = {
       titulo,
       descricao,
       preco,
       usuario_id: usuarioId,
-      foto
+      foto,
+      ativo: true
     };
 
     const faltando = Object.entries(campos)
@@ -60,6 +61,17 @@ export default class AnunciosController {
     });
   }
 
+  async getAnunciosByUsuarioId(req, res) {
+    const { usuarioId } = req.params;
+    const { data, error } = await supabase
+      .from('anuncios')
+      .select('*')
+      .eq('ativo', true)
+      .eq('usuario_id', usuarioId);
+
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
+  }
   async putAnuciosById(req, res) {
     const { id } = req.params;
     const { titulo, descricao, preco, usuarioId, foto } = req.body;

@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 
 import UsuarioControllers from './controllers/UsuarioControllers.js';
 import AnunciosController from './controllers/AnunciosControllers.js';
+import ComprasController from './controllers/ComprasController.js';
 
 dotenv.config();
 
@@ -31,6 +32,7 @@ function authenticateToken(req, res, next) {
 
 const usuariosController = new UsuarioControllers();
 const anunciosController = new AnunciosController();
+const comprasController = new ComprasController();
 
 // Rotas públicas
 app.post('/usuarios/login', usuariosController.login.bind(usuariosController));
@@ -39,17 +41,19 @@ app.post('/usuarios', usuariosController.postUsers.bind(usuariosController));
 // Rotas protegidas por JWT
 app.get('/usuarios', authenticateToken, usuariosController.getUsers.bind(usuariosController));
 app.get('/usuarios/:id', authenticateToken, usuariosController.getUsersById.bind(usuariosController));
-app.get('/usuarios/email/:email', authenticateToken, usuariosController.getUserByEmail.bind(usuariosController));
+app.get('/usuarios/email/:email', usuariosController.getUserByEmail.bind(usuariosController));
 app.get('/usuarios/logado', authenticateToken, usuariosController.getLoggedUser.bind(usuariosController));
-app.put('/usuarios/:id', authenticateToken, usuariosController.putUsers.bind(usuariosController));
+app.put('/usuarios/:id', usuariosController.putUsers.bind(usuariosController));
 app.delete('/usuarios/:id', authenticateToken, usuariosController.deleteUsers.bind(usuariosController));
 
 // Rotas de anúncios (pode proteger se quiser)
 app.get('/anuncios', anunciosController.getAnuncios.bind(anunciosController));
+app.get('/anuncios/usuario/:usuarioId', anunciosController.getAnunciosByUsuarioId.bind(anunciosController));
 app.get('/anuncios/:id', anunciosController.getAnunciosById.bind(anunciosController));
 app.post('/anuncios', anunciosController.postAnuncios.bind(anunciosController));
 app.put('/anuncios/:id', anunciosController.putAnuciosById.bind(anunciosController)); // corrigido o nome do método
 app.delete('/anuncios/:id', anunciosController.deleteAnunciosById.bind(anunciosController));
+app.post('/compras', comprasController.registrarCompra.bind(comprasController))
 
 // Use porta 3001 para combinar com o frontend
 const PORT = process.env.PORT || 3001;
