@@ -47,6 +47,7 @@ app.put('/usuarios/:id', usuariosController.putUsers.bind(usuariosController));
 app.delete('/usuarios/:id', authenticateToken, usuariosController.deleteUsers.bind(usuariosController));
 
 
+app.put('/usuarios/recuperar-senha', usuariosController.recuperarSenha.bind(usuariosController));
 app.get('/anuncios', anunciosController.getAnuncios.bind(anunciosController));
 app.get('/anuncios/vendidos/:usuarioId', anunciosController.getAnunciosVendidosPorUsuario.bind(anunciosController));
 app.get('/anuncios/usuario/:usuarioId', anunciosController.getAnunciosByUsuarioId.bind(anunciosController));
