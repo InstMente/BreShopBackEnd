@@ -139,7 +139,7 @@
     }
   async putUsers(req, res) {
     const { id } = req.params;
-    const { nome, email, telefone, datanascimento, cpf, cep, cidade, bairro, rua, numerocasa, senha } = req.body;
+    const { nome, email, telefone, datanascimento, cpf, cep, cidade, bairro, rua, numerocasa, senha, foto } = req.body;
 
     if (!nome || !email || !telefone || !datanascimento || !cpf || !cep || !cidade || !bairro || !rua || !numerocasa) {
       return res.status(400).json({ mensagem: 'Campos obrigatórios ausentes.' });
@@ -190,7 +190,8 @@
           bairro,
           rua,
           numerocasa,
-          senha: senhaHash
+          senha: senhaHash,
+          foto
         })
         .eq('id', id);
 

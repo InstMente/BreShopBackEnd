@@ -24,13 +24,36 @@ class ComprasController {
 
     const { error: inativarErro } = await supabase
       .from('anuncios')
-      .update({ ativo: false }) 
+      .update({ ativo: false })
       .eq('id', anuncio.id);
 
     if (inativarErro) return res.status(500).json({ erro: 'Erro ao inativar anúncio' });
 
     return res.status(200).json({ mensagem: 'Compra registrada e anúncio inativado' });
   }
+
+  async compradorid(req, res) {
+  const { anuncio_id } = req.body;
+
+  if (!anuncio_id) {
+    return res.status(400).json({ erro: 'anuncio_id é obrigatório' });
+  }
+
+  const { data, error } = await supabase
+    .from('vendas')
+    .select('preco')
+    .eq('anuncio_id', anuncio_id)
+    .single(); // só um resultado
+
+  if (error || !data) {
+    return res.status(404).json({ erro: 'Venda não encontrada para esse anúncio.' });
+  }
+
+  return res.status(200).json(data);
+}
+
+
+
 }
 
 export default ComprasController;

@@ -7,6 +7,21 @@ export default class AnunciosController {
     res.json(data);
   }
 
+  async getAnunciosVendidosPorUsuario(req, res) {
+  const { usuarioId } = req.params;
+
+  const { data, error } = await supabase
+    .from('anuncios')
+    .select('*')
+    .eq('usuario_id', usuarioId)
+    .eq('ativo', false);
+
+  if (error) return res.status(500).json({ erro: error.message });
+
+  res.status(200).json(data);
+}
+
+
   async getAnunciosById(req, res) {
     const { id } = req.params;
     const { data, error } = await supabase
