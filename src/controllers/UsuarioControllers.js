@@ -164,7 +164,7 @@ export default class UsuarioControllers {
 
     async putUsers(req, res) {
       const { id } = req.params;
-      const { nome, email, telefone, datanascimento, cpf, cep, cidade, bairro, rua, numerocasa, senha, foto } = req.body;
+      const { nome, email, telefone, datanascimento, cpf, cep, cidade, bairro, rua, numerocasa, senha, foto, ativo } = req.body;
 
       if (!nome || !email || !telefone || !datanascimento || !cpf || !cep || !cidade || !bairro || !rua || !numerocasa) {
         return res.status(400).json({ mensagem: 'Campos obrigatórios ausentes.' });
@@ -216,7 +216,8 @@ export default class UsuarioControllers {
             rua,
             numerocasa,
             senha: senhaHash,
-            foto
+            foto,
+            ativo
           })
           .eq('id', id);
 

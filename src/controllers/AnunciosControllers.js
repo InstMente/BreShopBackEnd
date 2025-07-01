@@ -8,18 +8,18 @@ export default class AnunciosController {
   }
 
   async getAnunciosVendidosPorUsuario(req, res) {
-  const { usuarioId } = req.params;
+    const { usuarioId } = req.params;
 
-  const { data, error } = await supabase
-    .from('anuncios')
-    .select('*')
-    .eq('usuario_id', usuarioId)
-    .eq('ativo', false);
+    const { data, error } = await supabase
+      .from('anuncios')
+      .select('*')
+      .eq('usuario_id', usuarioId)
+      .eq('ativo', false);
 
-  if (error) return res.status(500).json({ erro: error.message });
+    if (error) return res.status(500).json({ erro: error.message });
 
-  res.status(200).json(data);
-}
+    res.status(200).json(data);
+  }
 
 
   async getAnunciosById(req, res) {
@@ -89,7 +89,8 @@ export default class AnunciosController {
   }
   async putAnuciosById(req, res) {
     const { id } = req.params;
-    const { titulo, descricao, preco, usuarioId, foto } = req.body;
+    const { titulo, descricao, preco, foto } = req.body;
+    const usuarioId = req.usuario.id;
 
     const { data, error: findError } = await supabase
       .from('anuncios')
