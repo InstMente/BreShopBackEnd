@@ -66,7 +66,7 @@ export default class UsuarioControllers {
 
       const { data, error } = await supabase
         .from('usuarios')
-        .insert([{ nome, email, telefone, datanascimento, cpf, cep, cidade, bairro, rua, numerocasa, senha: senhaHash }])
+        .insert([{ nome, email, telefone, datanascimento, cpf, cep, cidade, bairro, rua, numerocasa, senha: senhaHash, ativo: true}])
         .select('id')
         .single();
 
