@@ -87,37 +87,53 @@ export default class AnunciosController {
     if (error) return res.status(500).json({ error: error.message });
     res.json(data);
   }
-  async putAnuciosById(req, res) {
-    const { id } = req.params;
-    const { titulo, descricao, preco, foto } = req.body;
-    const usuarioId = req.usuario.id;
+async putAnunciosById(req, res) {
+  const { id } = req.params;
+  const { titulo, descricao, preco, foto } = req.body; // não aceita ativo do cliente
+  const usuarioId = req.usuario?.id;
 
-    const { data, error: findError } = await supabase
-      .from('anuncios')
-      .select('*')
-      .eq('id', id)
-      .eq('usuario_id', usuarioId)
-      .single();
-
-    if (findError) {
-      return res.status(404).json({ mensagem: 'Anúncio não encontrado ou não pertence ao usuário' });
-    }
-
-    const { error } = await supabase
-      .from('anuncios')
-      .update({ titulo, descricao, preco, foto })
-      .eq('id', id)
-      .eq('usuario_id', usuarioId);
-
-    if (error) {
-      return res.status(500).json({
-        erro: 'Erro ao atualizar anúncio',
-        detalhes: error.message
-      });
-    }
-
-    res.status(200).json({ mensagem: 'Anúncio atualizado com sucesso' });
+  if (!usuarioId) {
+    return res.status(401).json({ mensagem: 'Usuário não autenticado' });
   }
+
+  // Verifica se o anúncio existe e pertence ao usuário
+  const { data: anuncio, error: findError } = await supabase
+    .from('anuncios')
+    .select('*')
+    .eq('id', id)
+    .eq('usuario_id', usuarioId)
+    //.eq('ativo', true) // opcional, remova se quiser permitir editar inativos
+    .single();
+
+  if (findError || !anuncio) {
+    return res.status(404).json({ mensagem: 'Anúncio não encontrado ou não pertence ao usuário' });
+  }
+
+  // Prepara dados para update, força ativo como true
+  const updateData = {
+    titulo: titulo ?? anuncio.titulo,
+    descricao: descricao ?? anuncio.descricao,
+    preco: preco ?? anuncio.preco,
+    foto: foto ?? anuncio.foto,
+    ativo: true
+  };
+
+  const { error } = await supabase
+    .from('anuncios')
+    .update(updateData)
+    .eq('id', id)
+    .eq('usuario_id', usuarioId);
+
+  if (error) {
+    return res.status(500).json({
+      erro: 'Erro ao atualizar anúncio',
+      detalhes: error.message
+    });
+  }
+
+  res.status(200).json({ mensagem: 'Anúncio atualizado com sucesso' });
+}
+
 
   async deleteAnunciosById(req, res) {
     const { id } = req.params;
