@@ -138,14 +138,14 @@ export default class UsuarioControllers {
     }
   }
   async recuperarSenha(req, res) {
-    const { email, novaSenha } = req.body;
+    const { email, senha } = req.body;
 
-    if (!email || !novaSenha) {
+    if (!email || !senha) {
       return res.status(400).json({ mensagem: 'Email e nova senha são obrigatórios.' });
     }
 
     try {
-      const senhaHash = await bcrypt.hash(novaSenha, 10);
+      const senhaHash = await bcrypt.hash(senha, 10);
 
       const { error } = await supabase
         .from('usuarios')
@@ -162,73 +162,73 @@ export default class UsuarioControllers {
     }
   }
 
-  async putUsers(req, res) {
-    const { id } = req.params;
-    const { nome, email, telefone, datanascimento, cpf, cep, cidade, bairro, rua, numerocasa, senha, foto } = req.body;
+    async putUsers(req, res) {
+      const { id } = req.params;
+      const { nome, email, telefone, datanascimento, cpf, cep, cidade, bairro, rua, numerocasa, senha, foto } = req.body;
 
-    if (!nome || !email || !telefone || !datanascimento || !cpf || !cep || !cidade || !bairro || !rua || !numerocasa) {
-      return res.status(400).json({ mensagem: 'Campos obrigatórios ausentes.' });
-    }
-
-    try {
-
-      const { data: existing } = await supabase
-        .from('usuarios')
-        .select('id')
-        .or(`email.eq.${email},cpf.eq.${cpf}`)
-        .neq('id', id);
-
-      if (existing.length > 0) {
-        return res.status(409).json({ mensagem: 'Email ou CPF já utilizado.' });
+      if (!nome || !email || !telefone || !datanascimento || !cpf || !cep || !cidade || !bairro || !rua || !numerocasa) {
+        return res.status(400).json({ mensagem: 'Campos obrigatórios ausentes.' });
       }
 
-      const { data: userAtual, error: errUser } = await supabase
-        .from('usuarios')
-        .select('senha')
-        .eq('id', id)
-        .single();
+      try {
 
-      if (errUser || !userAtual) {
-        return res.status(404).json({ mensagem: 'Usuário não encontrado.' });
-      }
+        const { data: existing } = await supabase
+          .from('usuarios')
+          .select('id')
+          .or(`email.eq.${email},cpf.eq.${cpf}`)
+          .neq('id', id);
 
-      let senhaHash = userAtual.senha;
-
-      if (senha && senha.trim() !== '') {
-        const senhaMudou = !(await bcrypt.compare(senha, userAtual.senha));
-        if (senhaMudou) {
-          senhaHash = await bcrypt.hash(senha, 10);
+        if (existing.length > 0) {
+          return res.status(409).json({ mensagem: 'Email ou CPF já utilizado.' });
         }
+
+        const { data: userAtual, error: errUser } = await supabase
+          .from('usuarios')
+          .select('senha')
+          .eq('id', id)
+          .single();
+
+        if (errUser || !userAtual) {
+          return res.status(404).json({ mensagem: 'Usuário não encontrado.' });
+        }
+
+        let senhaHash = userAtual.senha;
+
+        if (senha && senha.trim() !== '') {
+          const senhaMudou = !(await bcrypt.compare(senha, userAtual.senha));
+          if (senhaMudou) {
+            senhaHash = await bcrypt.hash(senha, 10);
+          }
+        }
+
+
+        const { error } = await supabase
+          .from('usuarios')
+          .update({
+            nome,
+            email,
+            telefone,
+            datanascimento,
+            cpf,
+            cep,
+            cidade,
+            bairro,
+            rua,
+            numerocasa,
+            senha: senhaHash,
+            foto
+          })
+          .eq('id', id);
+
+        if (error) {
+          return res.status(500).json({ mensagem: 'Erro ao atualizar usuário.', detalhes: error.message });
+        }
+
+        res.status(200).json({ mensagem: 'Usuário atualizado com sucesso.' });
+      } catch (error) {
+        res.status(500).json({ mensagem: 'Erro interno no servidor.', detalhes: error.message });
       }
-
-
-      const { error } = await supabase
-        .from('usuarios')
-        .update({
-          nome,
-          email,
-          telefone,
-          datanascimento,
-          cpf,
-          cep,
-          cidade,
-          bairro,
-          rua,
-          numerocasa,
-          senha: senhaHash,
-          foto
-        })
-        .eq('id', id);
-
-      if (error) {
-        return res.status(500).json({ mensagem: 'Erro ao atualizar usuário.', detalhes: error.message });
-      }
-
-      res.status(200).json({ mensagem: 'Usuário atualizado com sucesso.' });
-    } catch (error) {
-      res.status(500).json({ mensagem: 'Erro interno no servidor.', detalhes: error.message });
     }
-  }
 
 
   async deleteUsers(req, res) {
